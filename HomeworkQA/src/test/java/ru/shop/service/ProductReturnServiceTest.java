@@ -1,8 +1,10 @@
 package ru.shop.service;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import ru.shop.exception.EntityNotFoundException;
+import ru.shop.model.Order;
 import ru.shop.model.ProductReturn;
 import ru.shop.repository.ProductReturnRepository;
 
@@ -11,9 +13,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ProductReturnServiceTest {
@@ -59,6 +63,20 @@ public class ProductReturnServiceTest {
         });
     }
 
+    @Test
+    void shouldSaveProductReturn() {
+        Order order = new Order(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 10, 1000);
+
+        productReturnService.add(order, 10);
+
+        ArgumentCaptor<ProductReturn> argumentCaptor = ArgumentCaptor.captor();
+
+        verify(repository).save(argumentCaptor.capture());
+        ProductReturn savedProductReturn = argumentCaptor.getValue();
+        assertThat(savedProductReturn)
+                .returns(10, ProductReturn::getQuantity)
+                .returns(order.getId(), ProductReturn::getOrderId);
+    }
 }
 
 
