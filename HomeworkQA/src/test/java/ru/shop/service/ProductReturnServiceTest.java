@@ -17,18 +17,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ProductReturnServiceTest {
     private final ProductReturnRepository repository = Mockito.mock();
-    OrderService orderService = Mockito.mock(OrderService.class);
-    private final ProductReturnService productReturnService = new ProductReturnService(repository, orderService);
+    private final ProductReturnService productReturnService = new ProductReturnService(repository);
 
 
     @Test
     public void shouldFindAll() {
-        List<ProductReturn> productReturns = List.of(new ProductReturn(UUID.randomUUID(), UUID.randomUUID(), LocalDate.now(), 3));
+        List<ProductReturn> productReturns = List.of(new ProductReturn(UUID.randomUUID(), UUID.randomUUID(), LocalDate.now(), 3L));
         when(repository.findAll()).thenReturn(productReturns);
         List<ProductReturn> result = productReturnService.findAll();
         assertEquals(1, result.size());
@@ -38,7 +36,7 @@ public class ProductReturnServiceTest {
     @Test
     void shouldGetProductReturn() {
         UUID id = UUID.randomUUID();
-        ProductReturn productReturn = new ProductReturn(UUID.randomUUID(), UUID.randomUUID(), LocalDate.now(), 3);
+        ProductReturn productReturn = new ProductReturn(UUID.randomUUID(), UUID.randomUUID(), LocalDate.now(), 3L);
 
         when(repository.findById(id)).thenReturn(Optional.of(productReturn));
 
@@ -64,18 +62,21 @@ public class ProductReturnServiceTest {
     }
 
     @Test
-    void shouldSaveProductReturn() {
-        Order order = new Order(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 10, 1000);
+    void shouldAddProductReturn() {
+        Order order = new Order(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 3, 6);
+        ProductReturn productReturn = new ProductReturn(UUID.randomUUID(), order.getId(), LocalDate.now(), order.getCount() - 1);
 
-        productReturnService.add(order, 10);
+        //when
+        productReturnService.add(order, productReturn.getQuantity());
+        ArgumentCaptor<ProductReturn> orderArgumentCaptor = ArgumentCaptor.captor();
 
-        ArgumentCaptor<ProductReturn> argumentCaptor = ArgumentCaptor.captor();
+        verify(repository, times(1)).save(orderArgumentCaptor.capture());
 
-        verify(repository).save(argumentCaptor.capture());
-        ProductReturn savedProductReturn = argumentCaptor.getValue();
-        assertThat(savedProductReturn)
-                .returns(10, ProductReturn::getQuantity)
-                .returns(order.getId(), ProductReturn::getOrderId);
+        //then
+        ProductReturn savedReturn = orderArgumentCaptor.getValue();
+
+        assertEquals(productReturn.getQuantity(), savedReturn.getQuantity());
+        assertEquals(order.getId(), savedReturn.getOrderId());
     }
 }
 
